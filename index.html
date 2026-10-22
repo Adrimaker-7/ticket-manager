@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticket Manager</title>
+<style>
+:root{--navy:#142d4e;--mint:#77e5c2;--bg:#f3f6fb;--card:#fff;--text:#172033;--muted:#65738a;--line:#e0e7f0;--red:#c0394b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text)}
+main{max-width:850px;margin:0 auto;padding:22px 15px 45px}
+header{background:var(--navy);color:#fff;padding:25px;border-radius:20px;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:13px}.logo{font-size:36px}
+h1{font-size:clamp(24px,5vw,34px);margin:0;letter-spacing:.3px}header p{color:#d0e1f5;margin:5px 0 0}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:22px}
+.stat{background:#244264;padding:15px;border-radius:13px}.stat span{display:block;color:#d0e1f5;font-size:13px}.stat strong{display:block;font-size:25px;margin-top:5px;overflow-wrap:anywhere}
+.card{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:20px;margin:15px 0;box-shadow:0 4px 16px #142d4e08}
+h2{font-size:20px;margin:0 0 16px}
+.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}.wide{grid-column:1/-1}
+label{font-size:14px;font-weight:650}
+input,select,textarea{font:inherit;width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:var(--text)}
+textarea{resize:vertical;min-height:72px}
+button,.filelabel{font:inherit;font-weight:650;border:0;border-radius:10px;padding:11px 14px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.primary{background:var(--navy);color:white}.secondary{background:#e8eef6;color:var(--navy)}.danger{background:#fff0f1;color:var(--red)}.small{padding:7px 10px;font-size:13px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #77e5c280;outline-offset:2px}
+.formactions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.toolbar{display:grid;grid-template-columns:1fr 190px;gap:10px;margin-bottom:12px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}
+.filter{background:#e8eef6;color:var(--navy)}.filter.active{background:var(--navy);color:#fff}
+.ticket{border:1px solid var(--line);border-radius:13px;padding:14px;margin:10px 0;background:#fff}
+.tickettop{display:flex;align-items:flex-start;gap:10px}.ticketicon{font-size:25px}.ticketinfo{flex:1;min-width:0}.ticketname{font-weight:750;overflow-wrap:anywhere}.meta{font-size:13px;color:var(--muted);margin-top:3px}.amount{font-weight:800;white-space:nowrap}
+.notes{font-size:14px;white-space:pre-wrap;margin:10px 0 0;color:#3d4b60}
+.ticketactions{display:flex;gap:7px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.empty{text-align:center;color:var(--muted);padding:28px 8px}
+.notice{padding:12px 14px;background:#edf8f4;border-radius:10px;color:#215b49;font-size:13px;margin-top:12px}
+.hidden{display:none!important}.foot{font-size:12px;color:var(--muted);line-height:1.5;text-align:center;margin:18px 8px}
+@media(max-width:540px){.formgrid{grid-template-columns:1fr}.wide{grid-column:auto}.toolbar{grid-template-columns:1fr}.stats{gap:8px}.stat{padding:12px}.stat strong{font-size:21px}.card{padding:16px}header{padding:20px}.amount{font-size:14px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <div class="brand"><div class="logo" aria-hidden="true">🧾</div><div><h1>TICKET MANAGER</h1><p>Tu archivo personal de tickets de compra</p></div></div>
+ <div class="stats">
+  <div class="stat"><span>Tickets guardados</span><strong id="count">0</strong></div>
+  <div class="stat"><span>Gasto registrado</span><strong id="total">0,00 €</strong></div>
+ </div>
+</header>
+<section class="card">
+ <h2 id="formTitle">＋ Guardar un ticket</h2>
+ <form id="ticketForm">
+  <div class="formgrid">
+   <div class="field"><label for="store">Tienda *</label><input id="store" required maxlength="100" placeholder="Ej. Mercadona, Carrefour…"></div>
+   <div class="field"><label for="amount">Importe (€) *</label><input id="amount" required type="number" min="0" max="10000000" step="0.01" placeholder="24,95"></div>
+   <div class="field"><label for="date">Fecha de compra *</label><input id="date" type="date" required></div>
+   <div class="field"><label for="category">Categoría</label><select id="category"><option>Supermercado</option><option>Ropa y calzado</option><option>Tecnología</option><option>Hogar</option><option>Restaurantes</option><option>Otros</option></select></div>
+   <div class="field wide"><label for="notes">Notas (opcional)</label><textarea id="notes" maxlength="1000" placeholder="Garantía, devolución, productos…"></textarea></div>
+  </div>
+  <div class="formactions"><button class="primary" type="submit" id="saveBtn">Guardar ticket</button><button class="secondary hidden" type="button" id="cancelEdit">Cancelar edición</button></div>
+  <div id="formNotice" class="notice hidden" role="status"></div>
+ </form>
+</section>
+<section class="card">
+ <h2>Mis tickets</h2>
+ <div class="toolbar">
+  <input id="search" type="search" placeholder="🔎 Buscar por tienda o notas…" aria-label="Buscar tickets">
+  <select id="sort" aria-label="Ordenar tickets"><option value="new">Más recientes primero</option><option value="old">Más antiguos primero</option><option value="amountHigh">Importe: mayor a menor</option><option value="amountLow">Importe: menor a mayor</option><option value="store">Tienda A-Z</option></select>
+ </div>
+ <div class="filters" id="filters">
+  <button type="button" class="filter active" data-cat="Todas">Todas</button>
+  <button type="button" class="filter" data-cat="Supermercado">Supermercado</button>
+  <button type="button" class="filter" data-cat="Ropa y calzado">Ropa</button>
+  <button type="button" class="filter" data-cat="Tecnología">Tecnología</button>
+  <button type="button" class="filter" data-cat="Hogar">Hogar</button>
+  <button type="button" class="filter" data-cat="Restaurantes">Restaurantes</button>
+  <button type="button" class="filter" data-cat="Otros">Otros</button>
+ </div>
+ <div id="ticketList" aria-live="polite"></div>
+ <div class="formactions">
+  <button type="button" class="secondary" id="exportBtn">⬇ Exportar copia (JSON)</button>
+  <label class="filelabel secondary" for="importFile">⬆ Importar copia</label><input class="hidden" type="file" id="importFile" accept=".json,application/json">
+  <button type="button" class="secondary" id="csvBtn">Exportar CSV</button>
+ </div>
+ <div class="foot">Los tickets se guardan en este navegador en este dispositivo. Usa «Exportar copia» de vez en cuando para tener una copia de seguridad.</div>
+</section>
+<section class="card">
+ <h2>Privacidad y datos</h2>
+ <p style="font-size:14px;color:var(--muted);line-height:1.55">Esta web no envía tus datos a ningún servidor. Si borras los datos del navegador o usas otro dispositivo/navegador, podrías perder el archivo; exporta una copia para evitarlo.</p>
+ <button type="button" class="danger" id="clearBtn">Borrar todos los tickets…</button>
+</section>
+<p class="foot">TICKET MANAGER · Organiza tus recibos y tickets de compra.</p>
+</main>
+<script>
+(() => {
+ const KEY = 'ticket-manager-v1';
+ const $ = id => document.getElementById(id);
+ let tickets = [];
+ let activeCategory = 'Todas';
+ let editingId = null;
+ const today = new Date();
+ $('date').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+ const euro = n => Number(n).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+ const safeText = s => String(s ?? '');
+ function showNotice(message) {
+   $('formNotice').textContent = message;
+   $('formNotice').classList.remove('hidden');
+   setTimeout(() => $('formNotice').classList.add('hidden'), 3500);
+ }
+ function persist() {
+   try { localStorage.setItem(KEY, JSON.stringify(tickets)); return true; }
+   catch(e) { alert('No se pudieron guardar los cambios en este navegador. Exporta una copia de seguridad.'); return false; }
+ }
+ function load() {
+   try {
+     const parsed = JSON.parse(localStorage.getItem(KEY) || '[]');
+     if (Array.isArray(parsed)) tickets = parsed.filter(t => t && typeof t.store === 'string' && Number.isFinite(Number(t.amount)));
+   } catch(e) { tickets = []; }
+ }
+ function escapeHTML(s) {
+   return safeText(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ }
+ function render() {
+   $('count').textContent = tickets.length;
+   $('total').textContent = euro(tickets.reduce((sum,t)=>sum+Number(t.amount||0),0));
+   const q = $('search').value.trim().toLocaleLowerCase('es');
+   let shown = tickets.filter(t => (activeCategory === 'Todas' || t.category === activeCategory) &&
+      (`${t.store} ${t.notes||''} ${t.category||''}`).toLocaleLowerCase('es').includes(q));
+   const sort = $('sort').value;
+   shown.sort((a,b) => sort === 'old' ? a.date.localeCompare(b.date) :
+      sort === 'amountHigh' ? Number(b.amount)-Number(a.amount) :
+      sort === 'amountLow' ? Number(a.amount)-Number(b.amount) :
+      sort === 'store' ? a.store.localeCompare(b.store,'es') :
+      b.date.localeCompare(a.date) || b.createdAt-a.createdAt);
+   if (!shown.length) {
+     $('ticketList').innerHTML = '<div class="empty">🧾<br><br>'+(tickets.length ? 'No hay tickets que coincidan con la búsqueda.' : 'Todavía no has guardado ningún ticket.')+'</div>';
+     return;
+   }
+   $('ticketList').innerHTML = shown.map(t => `<article class="ticket">
+    <div class="tickettop"><div class="ticketicon">🧾</div><div class="ticketinfo"><div class="ticketname">${escapeHTML(t.store)}</div><div class="meta">${escapeHTML(t.date)} · ${escapeHTML(t.category)}</div></div><div class="amount">${euro(t.amount)}</div></div>
+    ${t.notes ? `<div class="notes">${escapeHTML(t.notes)}</div>` : ''}
+    <div class="ticketactions"><button class="secondary small" type="button" data-edit="${escapeHTML(t.id)}">✏️ Editar</button><button class="danger small" type="button" data-delete="${escapeHTML(t.id)}">Eliminar</button></div>
+   </article>`).join('');
+ }
+ $('ticketForm').addEventListener('submit', e => {
+   e.preventDefault();
+   const store = $('store').value.trim();
+   const amount = Number($('amount').value);
+   if (!store || $('amount').value === '' || !Number.isFinite(amount) || amount < 0) { showNotice('Revisa la tienda y el importe.'); return; }
+   const record = { id: editingId || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+Math.random()), store, amount: Math.round(amount*100)/100, date: $('date').value, category: $('category').value, notes: $('notes').value.trim(), createdAt: Date.now() };
+   if (editingId) tickets = tickets.map(t => t.id === editingId ? {...t,...record,id:editingId} : t);
+   else tickets.unshift(record);
+   persist(); resetForm(); render(); showNotice(editingId ? 'Ticket actualizado.' : 'Ticket guardado correctamente.');
+ });
+ function resetForm() { editingId=null; $('ticketForm').reset(); $('date').value=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`; $('formTitle').textContent='＋ Guardar un ticket'; $('saveBtn').textContent='Guardar ticket'; $('cancelEdit').classList.add('hidden'); }
+ $('cancelEdit').addEventListener('click', resetForm);
+ $('ticketList').addEventListener('click', e => {
+   const edit = e.target.closest('[data-edit]');
+   const del = e.target.closest('[data-delete]');
+   if (edit) {
+     const t=tickets.find(x=>x.id===edit.dataset.edit); if(!t)return;
+     editingId=t.id; $('store').value=t.store; $('amount').value=t.amount; $('date').value=t.date; $('category').value=t.category; $('notes').value=t.notes||'';
+     $('formTitle').textContent='✏️ Editar ticket'; $('saveBtn').textContent='Guardar cambios'; $('cancelEdit').classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'});
+   }
+   if (del) {
+     const t=tickets.find(x=>x.id===del.dataset.delete); if(!t)return;
+     if(confirm(`¿Eliminar el ticket de ${t.store}?`)){tickets=tickets.filter(x=>x.id!==t.id);persist();render();}
+   }
+ });
+ $('filters').addEventListener('click', e => {
+   const btn=e.target.closest('[data-cat]'); if(!btn)return;
+   activeCategory=btn.dataset.cat;
+   $('filters').querySelectorAll('[data-cat]').forEach(b=>b.classList.toggle('active',b===btn));
+   render();
+ });
+ $('search').addEventListener('input',render);
+ $('sort').addEventListener('change',render);
+ function download(name, content, type) {
+   const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+   a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ }
+ $('exportBtn').addEventListener('click',()=>download('tickets-copia.json',JSON.stringify(tickets,null,2),'application/json'));
+ $('csvBtn').addEventListener('click',()=>{
+   const quote=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+   const rows=[['Tienda','Importe (€)','Fecha','Categoría','Notas'],...tickets.map(t=>[t.store,Number(t.amount).toFixed(2),t.date,t.category,t.notes||''])];
+   download('tickets.csv','\uFEFF'+rows.map(r=>r.map(quote).join(';')).join('\r\n'),'text/csv;charset=utf-8;');
+ });
+ $('importFile').addEventListener('change', async e=>{
+   const file=e.target.files[0]; if(!file)return;
+   try {
+     const data=JSON.parse(await file.text());
+     if(!Array.isArray(data)||!data.every(t=>t && typeof t.store==='string' && Number.isFinite(Number(t.amount)) && typeof t.date==='string')) throw new Error();
+     if(confirm(`¿Importar ${data.length} tickets? Se añadirán a los que ya tienes.`)){
+       const existing=new Set(tickets.map(t=>t.id));
+       const imported=data.map(t=>({...t,id: existing.has(t.id) ? (crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()) : t.id || String(Date.now())+Math.random()}));
+       tickets=[...imported,...tickets];persist();render();alert('Copia importada correctamente.');
+     }
+   } catch(err) { alert('El archivo no parece una copia válida de Ticket Manager.'); }
+   e.target.value='';
+ });
+ $('clearBtn').addEventListener('click',()=>{
+   if(confirm('¿Seguro que quieres borrar TODOS los tickets guardados? Esta acción no se puede deshacer. Exporta una copia antes si quieres conservarlos.')){
+     tickets=[];persist();render();resetForm();
+   }
+ });
+ load();render();
+})();
+</script>
+</body>
+</html>
